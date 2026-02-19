@@ -15,6 +15,7 @@ import {
   RunData,
 } from "@/src/types/execution";
 import { useThemeStore } from "@/src/Zustand_Store/ThemeStore";
+import axios from "axios";
 
 // --- Icons (Inline SVGs for portability) ---
 const Icons = {
@@ -260,6 +261,7 @@ const StatusBadge = ({
       break;
     case "PENDING":
     case "GENERATED":
+    case "QUEUED":
     default:
       colorClass = "bg-gray-800 text-gray-400 border border-gray-700";
       break;
@@ -277,13 +279,17 @@ const StatusBadge = ({
 
 const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const secs = Math.floor(seconds % 60);
   return `${mins}m ${secs.toString().padStart(2, "0")}s`;
 };
 
 // --- Main Component ---
 
-const LiveExecution = () => {
+interface LiveExecutionProps {
+  projectId?: string;
+}
+
+const LiveExecution = ({ projectId }: LiveExecutionProps) => {
   const { primaryColor, secondaryColor, tertiaryColor } = useThemeStore();
   // --- State for Simulation ---
   const [runData, setRunData] = useState<RunData | null>(null);
@@ -291,149 +297,39 @@ const LiveExecution = () => {
   const [showOverview, setShowOverview] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // --- Simulation Logic (Mock Data) ---
+  // --- Real-time Polling ---
   useEffect(() => {
-    // Initialize mock data
-    const initialRun: RunData = {
-      runId: "run-x92a-static",
-      projectId: "proj-123",
-      status: "RUNNING",
-      repositoryUrl: "github.com/Deepanshi-0103/replay2.0",
-      baseBranch: "main",
-      generatedBranchName: "replay-fix-x92a",
-      startedAt: new Date(Date.now() - 120000).toISOString(),
-      totalDurationSeconds: 120,
-      iterationCount: 2, // Simulating 2nd iteration
-      currentStep: "Generating Fixes",
-      totalFailuresDetected: 2, // From prev iteration
-      totalFixesApplied: 1, // From prev iteration
-      steps: [
-        {
-          id: "1",
-          name: "Cloning Repository",
-          status: "SUCCESS",
-          duration: "8s",
-        },
-        {
-          id: "2",
-          name: "Setting Up Sandbox",
-          status: "SUCCESS",
-          duration: "12s",
-        },
-        {
-          id: "3",
-          name: "Running Test Suite",
-          status: "SUCCESS",
-          duration: "45s",
-        },
-        {
-          id: "4",
-          name: "Parsing Failures",
-          status: "SUCCESS",
-          duration: "5s",
-        },
-        { id: "5", name: "Generating Fixes", status: "ACTIVE" },
-        { id: "6", name: "Applying Patch", status: "PENDING" },
-        { id: "7", name: "Monitoring CI", status: "PENDING" },
-        { id: "8", name: "Final Validation", status: "PENDING" },
-      ],
-      logs: [
-        {
-          id: "1",
-          timestamp: "10:02:14",
-          level: "INFO",
-          message: "Starting execution run...",
-        },
-        {
-          id: "2",
-          timestamp: "10:02:15",
-          level: "INFO",
-          message: "Cloning repository...",
-        },
-        {
-          id: "3",
-          timestamp: "10:02:22",
-          level: "INFO",
-          message: "Setting up isolated sandbox...",
-        },
-        {
-          id: "4",
-          timestamp: "10:02:25",
-          level: "INFO",
-          message: "Running test suite (pytest)...",
-        },
-        {
-          id: "5",
-          timestamp: "10:02:28",
-          level: "ERROR",
-          message: "Detected SyntaxError in src/components/Header.tsx:21",
-        },
-        {
-          id: "6",
-          timestamp: "10:02:28",
-          level: "ERROR",
-          message: "Detected TypeError in src/utils/api.ts:45",
-        },
-        {
-          id: "7",
-          timestamp: "10:02:30",
-          level: "INFO",
-          message: "Parsing failures and context...",
-        },
-        {
-          id: "8",
-          timestamp: "10:02:32",
-          level: "INFO",
-          message: "Generating fixes using LLM...",
-        },
-        {
-          id: "9",
-          timestamp: "10:02:35",
-          level: "INFO",
-          message: "Generated fix for Header.tsx.",
-        },
-      ],
-      failures: [
-        {
-          id: "f1",
-          filePath: "src/components/Header.tsx",
-          lineNumber: 21,
-          bugType: BugType.SYNTAX,
-          rawErrorMessage: "SyntaxError: Unexpected token",
-          classifiedCategory: "Syntax",
-        },
-        {
-          id: "f2",
-          filePath: "src/utils/api.ts",
-          lineNumber: 45,
-          bugType: BugType.TYPE_ERROR,
-          rawErrorMessage: 'TypeError: Cannot read property "map" of undefined',
-          classifiedCategory: "Null Reference",
-        },
-      ],
-      fixes: [
-        {
-          id: "fix1",
-          fileModified: "src/components/Header.tsx",
-          commitMessage: "fix: close missing parenthesis",
-          status: "GENERATED",
-        },
-      ],
-      iterations: [
-        {
-          id: "iter-1",
-          iterationNumber: 1,
-          failuresCount: 3,
-          fixesApplied: 2,
-          ciStatus: "FAILED",
-          duration: "1m 24s",
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-        },
-      ],
+    if (!projectId) return;
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/agent/project/${projectId}`,
+        );
+        setRunData(response.data);
+        if (
+          response.data.status === "PASSED" ||
+          response.data.status === "FAILED"
+        ) {
+          // Stop polling? Optional, but maybe good to keep polling for a bit
+        }
+      } catch (error) {
+        console.error("Error fetching project data:", error);
+      }
     };
 
-    setRunData(initialRun);
-  }, []);
+    fetchData(); // Initial fetch
+    const interval = setInterval(fetchData, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [projectId]);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [runData?.logs.length]);
 
   if (!runData)
     return (
@@ -444,7 +340,12 @@ const LiveExecution = () => {
           color: primaryColor,
         }}
       >
-        <Icons.Loader />
+        <div className="flex flex-col items-center gap-4">
+          <Icons.Loader />
+          <p className="text-gray-400 animate-pulse">
+            Initializing Interface...
+          </p>
+        </div>
       </div>
     );
 

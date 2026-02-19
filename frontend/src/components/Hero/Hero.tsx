@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Image from "next/image";
 import { useThemeStore } from "../../Zustand_Store/ThemeStore";
+import Link from "next/link";
 
 const Hero = () => {
   const { primaryColor } = useThemeStore();
@@ -188,8 +189,8 @@ const Hero = () => {
           </p>
 
           <div className="flex items-center justify-center gap-8 mt-4">
-            <button
-              type="button"
+            <Link
+              href="/heal"
               className="font-bold rounded-md text-lg px-8 py-2 text-center transition-transform hover:scale-105 active:scale-95"
               style={{
                 backgroundColor: primaryColor,
@@ -198,7 +199,7 @@ const Hero = () => {
               }}
             >
               Heal Your Repo
-            </button>
+            </Link>
 
             <button
               type="button"

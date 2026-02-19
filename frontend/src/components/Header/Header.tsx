@@ -2,9 +2,11 @@
 import React from "react";
 import Link from "next/link";
 import { useThemeStore } from "../../Zustand_Store/ThemeStore";
+import useStore from "../../Zustand_Store/Store";
 
 const Header = () => {
   const { primaryColor } = useThemeStore();
+  const { isAuthenticated, logout } = useStore();
 
   return (
     <nav className="fixed bg-black w-full z-50 top-0 start-0 py-6 px-12 transition-all duration-300">
@@ -39,24 +41,37 @@ const Header = () => {
 
         {/* Right Side */}
         <div className="flex items-center space-x-10">
+          {!isAuthenticated ? (
+            <>
+              <Link
+                href="/register"
+                className="text-lg font-medium hover:opacity-70 transition-opacity hidden md:block"
+                style={{ fontFamily: "Futura", color: primaryColor }}
+              >
+                Sign In
+              </Link>
+              
+            </>
+          ) : (
+            <button
+              onClick={() => logout()}
+              className="text-lg font-medium hover:opacity-70 transition-opacity hidden md:block"
+              style={{ fontFamily: "Futura", color: primaryColor }}
+            >
+              Logout
+            </button>
+          )}
           <Link
-            href="/register"
-            className="text-lg font-medium hover:opacity-70 transition-opacity hidden md:block"
-            style={{ fontFamily: "Futura", color: primaryColor }}
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/login"
-            className="font-bold rounded-md text-lg px-5 py-2 text-center transition-transform hover:scale-105 active:scale-95"
-            style={{
-              backgroundColor: primaryColor,
-              color: "#000000",
-              fontFamily: "Futura",
-            }}
-          >
-            Get Started
-          </Link>
+                href= {isAuthenticated ? "/heal" : "/login"}
+                className="font-bold rounded-md text-lg px-5 py-2 text-center transition-transform hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: "#000000",
+                  fontFamily: "Futura",
+                }}
+              >
+                Get Started
+              </Link>
         </div>
       </div>
     </nav>

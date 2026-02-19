@@ -14,7 +14,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = JSON.parse(localStorage.getItem("vaultmeet-auth") || "{}").state
+  const token = JSON.parse(localStorage.getItem("replayStore") || "{}").state
     ?.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -49,8 +49,6 @@ interface StoreState {
     password: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  checkAuth: () => boolean;
-  verifyUser: () => Promise<void>;
 }
 
 const useStore = create<StoreState>()(
@@ -134,44 +132,10 @@ const useStore = create<StoreState>()(
           console.error("Logout failed:", error);
         } finally {
           document.cookie = `token=; path=/; secure; samesite=none; max-age=0`; // 7 days
-          localStorage.removeItem("vaultmeet-auth");
+          localStorage.removeItem("replayStore");
           set({ token: null, isAuthenticated: false, user: null, error: null });
         }
-      },
-
-      checkAuth: () => {
-        const token = JSON.parse(localStorage.getItem("vaultmeet-auth") || "{}")
-          .state.token;
-        const isAuth = !!token;
-        set({ isAuthenticated: isAuth, token });
-        return isAuth;
-      },
-
-      verifyUser: async () => {
-        const token = JSON.parse(localStorage.getItem("vaultmeet-auth") || "{}")
-          .state.token;
-        if (!token) {
-          set({ isAuthenticated: false, user: null });
-          return;
-        }
-
-        try {
-          set({ loading: true, error: null });
-          await api.get("/me");
-          set({ loading: false });
-        } catch (error) {
-          console.error("Error verifying user:", error);
-          localStorage.removeItem("vaultmeet-auth");
-          document.cookie = `token=; path=/; secure; samesite=none; max-age=0`;
-          set({
-            isAuthenticated: false,
-            token: null,
-            user: null,
-            error: "Session expired",
-            loading: false,
-          });
-        }
-      },
+      }
     }),
     {
       name: "replayStore",
