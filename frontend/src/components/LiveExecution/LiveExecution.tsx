@@ -674,7 +674,7 @@ const LiveExecution = ({ projectId }: LiveExecutionProps) => {
                   return (
                     <div
                       key={failure.id}
-                      className="flex w-full items-center gap-4 px-6 py-4 border-b border-gray-800/40 hover:bg-white/[0.02] transition-colors group"
+                      className="flex w-full items-center gap-4 px-6 py-4 border-b border-gray-800/40 hover:bg-white/2 transition-colors group"
                     >
                       {/* Issue Column */}
                       <div className="w-[30%] text-xs text-rose-400 truncate pr-4">

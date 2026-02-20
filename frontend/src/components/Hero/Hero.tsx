@@ -1,12 +1,46 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { useThemeStore } from "../../Zustand_Store/ThemeStore";
 import Link from "next/link";
+import gsap from "gsap";
 
 const Hero = () => {
   const { primaryColor } = useThemeStore();
+  const heroImageRef = useRef<HTMLDivElement>(null);
+
+  // GSAP animation for hero image
+  useEffect(() => {
+    if (heroImageRef.current) {
+      gsap.fromTo(
+        heroImageRef.current,
+        {
+          y: 100,
+          opacity: 0,
+          scale: 0.95,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 1.5,
+          ease: "power3.out",
+          delay: 0.5,
+        }
+      );
+
+      // Add a subtle floating animation
+      gsap.to(heroImageRef.current, {
+        y: -10,
+        duration: 2,
+        ease: "power1.inOut",
+        repeat: -1,
+        yoyo: true,
+        delay: 2,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const createStar = (isInitial = false) => {
@@ -215,7 +249,7 @@ const Hero = () => {
         </div>
 
         {/* Bottom Content - Hero Image simulating dashboard */}
-        <div className="relative w-full max-w-6xl mt-8">
+        <div ref={heroImageRef} className="relative w-full max-w-6xl mt-8">
           <div className="relative w-full aspect-video md:aspect-2/1 lg:aspect-2.5/1">
             <Image
               src="/images/hero2.svg"
