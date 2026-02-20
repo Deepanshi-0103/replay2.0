@@ -64,6 +64,7 @@ const HealPage = () => {
           repoUrl,
           teamName: teamName || "Anonymous Team",
           leaderName: teamLeader || "Anonymous Leader",
+          githubToken: token,
         },
       );
 
