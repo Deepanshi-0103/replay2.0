@@ -32,6 +32,7 @@ const projectSchema = new mongoose.Schema({
   ],
   failures: [
     {
+      _id: String, // Explicitly define as String to allow UUIDs
       filePath: String,
       lineNumber: Number,
       bugType: String,

@@ -236,6 +236,7 @@ const StatusBadge = ({
   // added string to fix potential type mismatch
   let colorClass = "bg-gray-700 text-gray-300";
   let icon = null;
+  let displayText = status.replace(/_/g, " ");
 
   switch (status) {
     case "PASSED":
@@ -256,12 +257,16 @@ const StatusBadge = ({
     case "ACTIVE":
     case "INITIALIZING":
     case "WAITING_FOR_CI":
+    case "PENDING":
+    case "QUEUED":
       colorClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
       icon = <Icons.Loader />;
+      // User requested "instead of queued... show running"
+      if (status === "QUEUED" || status === "PENDING") {
+        displayText = "RUNNING";
+      }
       break;
-    case "PENDING":
     case "GENERATED":
-    case "QUEUED":
     default:
       colorClass = "bg-gray-800 text-gray-400 border border-gray-700";
       break;
@@ -272,7 +277,7 @@ const StatusBadge = ({
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium uppercase tracking-wide ${colorClass}`}
     >
       {icon ? icon : null}
-      {status.replace(/_/g, " ")}
+      {displayText}
     </span>
   );
 };
@@ -323,6 +328,39 @@ const LiveExecution = ({ projectId }: LiveExecutionProps) => {
 
     return () => clearInterval(interval);
   }, [projectId]);
+
+  // --- Live Duration Timer ---
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!runData || !runData.createdAt) return;
+
+    const isRunning =
+      runData.status !== "PASSED" &&
+      runData.status !== "FAILED" &&
+      runData.status !== "ERROR";
+
+    // If finished, use totalDurationSeconds from backend
+    if (!isRunning && runData.totalDurationSeconds) {
+      setElapsedSeconds(runData.totalDurationSeconds);
+      return;
+    }
+
+    // If running, calculate elapsed time
+    const calculateElapsed = () => {
+      const start = new Date(runData.createdAt).getTime();
+      const now = Date.now();
+      const seconds = Math.floor((now - start) / 1000);
+      setElapsedSeconds(seconds >= 0 ? seconds : 0);
+    };
+
+    calculateElapsed(); // Initial update
+
+    if (isRunning) {
+      const timer = setInterval(calculateElapsed, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [runData?.status, runData?.createdAt, runData?.totalDurationSeconds]);
 
   // Auto-scroll logs
   useEffect(() => {
@@ -505,10 +543,10 @@ const LiveExecution = ({ projectId }: LiveExecutionProps) => {
                 Duration
               </p>
               <p className="text-lg font-mono font-medium tabular-nums">
-                {formatTime(runData.totalDurationSeconds)}
+                {formatTime(runData.totalDurationSeconds || elapsedSeconds)}
               </p>
             </div>
-            {isFinished ? (
+            {!isFinished ? (
               <button
                 className="px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 transition-colors cursor-pointer"
                 style={{ color: "red" }}

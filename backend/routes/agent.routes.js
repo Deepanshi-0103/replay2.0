@@ -6,7 +6,10 @@ import { v4 as uuidv4 } from "uuid";
 const router = express.Router();
 
 router.post("/run-agent", async (req, res) => {
-  const { repoUrl, teamName, leaderName } = req.body;
+  const { repoUrl, teamName, leaderName, githubToken } = req.body;
+  console.error(
+    `[DEBUG-ERROR] Received request for ${repoUrl}. Body keys: ${Object.keys(req.body).join(",")}. Token provided: ${!!githubToken}`,
+  );
   const projectId = uuidv4();
 
   try {
@@ -33,12 +36,14 @@ router.post("/run-agent", async (req, res) => {
     await newProject.save();
 
     // Fire and forget - async execution
-    runAgent({ repoUrl, teamName, leaderName, projectId }).catch((err) => {
-      console.error(
-        `Background agent run failed for project ${projectId}:`,
-        err,
-      );
-    });
+    runAgent({ repoUrl, teamName, leaderName, projectId, githubToken }).catch(
+      (err) => {
+        console.error(
+          `Background agent run failed for project ${projectId}:`,
+          err,
+        );
+      },
+    );
 
     res.json({ success: true, projectId });
   } catch (error) {
